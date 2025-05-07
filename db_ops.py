@@ -3,9 +3,10 @@ from mysql.connector import Error
 import os
 
 DB_CONFIG = {
-  "host": os.environ['HOST'],
-  "user": os.environ['USERNAME'],
-  "password": os.environ["PASSWORD"]
+  "host": localhost,
+  "port": 3306,
+  "user": os.environ['MYSQL_USER'],
+  "password": os.environ["MYSQL_PASSWORD"]
 }
 
 DB_NAME = "reddit_clone_db"
