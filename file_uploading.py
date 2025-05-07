@@ -1,9 +1,10 @@
 import os
-import io
+from dotenv import load_dotenv
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, Error
 
-connectionString = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
+load_dotenv() 
+connectionString = os.environ['AZURE_STORAGE_CONNECTION_STRING']
 
 def query1_createfile(connectionString, filePath, fileName):
     blob_service_client = BlobServiceClient.from_connection_string(connectionString)
