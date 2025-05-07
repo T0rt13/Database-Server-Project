@@ -1,8 +1,12 @@
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Loads variables from .env into os.environ
 
 class DBInflux:
-    INFLUXDB_TOKEN="OQZvPOTqdOVgXCY-_uO72iDaKW9Pof70VGj3tI0KU-rRE7e51t7JqXg0wYITehHklrvsQfppsMj6teNWvtD8mg=="
+    INFLUXDB_TOKEN = os.environ['DOCKER_INFLUXDB_INIT_ADMIN_TOKEN']
     client = InfluxDBClient(url = "http://localhost:8086",org = "influx_org", token=INFLUXDB_TOKEN)
     write_api = client.write_api(write_options=SYNCHRONOUS) 
     query_api = client.query_api()

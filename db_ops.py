@@ -1,9 +1,12 @@
 import mysql.connector
 from mysql.connector import Error
+from dotenv import load_dotenv
 import os
 
+load_dotenv()  # Loads variables from .env into os.environ
+
 DB_CONFIG = {
-  "host": localhost,
+  "host": "localhost",
   "port": 3306,
   "user": os.environ['MYSQL_USER'],
   "password": os.environ["MYSQL_PASSWORD"]
