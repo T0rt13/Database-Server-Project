@@ -20,3 +20,6 @@ To interact with the 3 databases, 3 python packages will be needed.
 1. In a terminal, run `pip install azure-storage-blob azure-identity` to install the Azure packages.
 2. Run `pip install influxdb-client` to install the InfluxDB package.
 3. Run `pip install mysql-connector-python` to install the package for MariaDB.
+
+# Testing the 6 operations
+Running the main.py file should demonstrate all 6 operations outlined above.
