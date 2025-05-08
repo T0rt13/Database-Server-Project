@@ -19,9 +19,13 @@ class BlobOperations:
 
     def query3_getbloburl(self, fileName):
         blob_client = self.blob_service_client.get_blob_client(container="databasesproject", blob=fileName)
-        with open(file=os.path.join(r'', fileName), mode="wb") as sample_blob:
-            download_stream = blob_client.download_blob()
-            sample_blob.write(download_stream.readall())
+        # with open(file=os.path.join(r'', fileName), mode="wb") as sample_blob:
+        #     download_stream = blob_client.download_blob()
+        #     sample_blob.write(download_stream.readall())
+        download_stream = blob_client.download_blob()
+        content = download_stream.readall()
+        return content
+
 
     def query4_deleteblob(self, fileName):
         blob_client = self.blob_service_client.get_blob_client(container="databasesproject", blob=fileName)

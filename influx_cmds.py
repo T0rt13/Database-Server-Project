@@ -143,3 +143,60 @@ class DBInflux:
                     "upvotes": int(record["_value"])
                 })
         return results
+
+    def get_recent_posts(self, time_range="1d"):
+        """
+        Retrieves a list of unique post IDs that had any activity in the last `time_range`.
+
+        Args:
+            time_range (str): The time range for the query (e.g., "1d", "7d"). Default is "1d".
+
+        Returns:
+            list of str: A list of unique post IDs.
+
+        Example:
+            ['abc123', 'xyz789']
+        """
+        query = f'''
+        from(bucket: "{self.bucket}")
+        |> range(start: -{time_range})
+        |> filter(fn: (r) => r["_measurement"] == "post_metrics")
+        |> keep(columns: ["post_id"])
+        |> group()
+        |> distinct(column: "post_id")
+        '''
+        tables = self.query_api.query(org="influx_org", query=query)
+        # get all post ids except values with None
+        post_ids = [pid for pid in (record.values.get("_value") for table in tables for record in table.records) if pid]
+        return post_ids
+
+    def get_post_most_recent_timestamp(self, post_id, time_range="1d"):
+        """
+        Retrieves the most recent timestamp for a specific post within the last `time_range`.
+
+        Args:
+            post_id (str): The ID of the post for which to fetch the timestamp.
+            time_range (str): The time range for the query (e.g., "1d", "7d"). Default is "1d".
+
+        Returns:
+            str: The timestamp of the most recent post activity (in ISO 8601 format), or None if not found.
+
+        Example:
+            '2025-05-07T14:32:10Z'
+        """
+        query = f'''
+        from(bucket: "{self.bucket}")
+        |> range(start: -{time_range})
+        |> filter(fn: (r) => r["_measurement"] == "post_metrics")
+        |> filter(fn: (r) => r["post_id"] == "{post_id}")
+        |> keep(columns: ["_time", "post_id"])
+        |> sort(columns: ["_time"], desc: true)
+        |> limit(n: 1)
+        '''
+        tables = self.query_api.query(org="influx_org", query=query)
+
+        for table in tables:
+            for record in table.records:
+                return record.values.get("_time")
+
+        return None  # if no record found

@@ -13,6 +13,8 @@ class MariaDB:
             "password": os.environ["MYSQL_PASSWORD"]
         }
         self.db_name = os.environ['MYSQL_DATABASE']
+        self.create_database()
+        self.create_tables()
 
     # ------------------------ Connect
 
@@ -23,7 +25,6 @@ class MariaDB:
         try:
             connection = mysql.connector.connect(**config)
             if connection.is_connected():
-                print("Connected to MariaDB server")
                 return connection
         except Error as e:
             print(f"Error connecting to MariaDB: {e}")
@@ -35,7 +36,7 @@ class MariaDB:
             cursor = conn.cursor()
             try:
                 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {self.db_name} DEFAULT CHARACTER SET 'utf8mb4'")
-                print(f"Database '{self.db_name}' ensured.")
+                # print(f"Database '{self.db_name}' exists.")
             except Error as e:
                 print(f"Error creating database '{self.db_name}': {e}")
             finally:
@@ -70,7 +71,7 @@ class MariaDB:
             post_id VARCHAR(64) PRIMARY KEY,
             user_id VARCHAR(64) NOT NULL,
             title TEXT NOT NULL,
-            content_key TEXT NOT NULL,
+            file_name TEXT NOT NULL,
             status ENUM('active', 'deleted') DEFAULT 'active'
         )
         """
@@ -87,16 +88,16 @@ class MariaDB:
         self.execute_query(conn, create_posts_table)
         self.execute_query(conn, create_upvotes_table)
         conn.close()
-        print("Tables created.")
+        # print("Tables created.")
 
     # ------------------------ CRUD operations
 
-    def insert_post(self, conn, post_id, user_id, title, content_key):
+    def insert_post(self, conn, post_id, user_id, title, file_name):
         query = """
-            INSERT INTO posts (post_id, user_id, title, content_key)
+            INSERT INTO posts (post_id, user_id, title, file_name)
             VALUES (%s, %s, %s, %s)
         """
-        return self.execute_query(conn, query, (post_id, user_id, title, content_key))
+        return self.execute_query(conn, query, (post_id, user_id, title, file_name))
 
     def list_posts(self, conn):
         query = """
@@ -104,22 +105,47 @@ class MariaDB:
                 p.post_id,
                 p.user_id,
                 p.title,
-                p.content_key,
+                p.file_name,
                 COUNT(u.user_id) AS upvote_count
             FROM posts p
             LEFT JOIN post_upvotes u ON p.post_id = u.post_id
             WHERE p.status = 'active'
-            GROUP BY p.post_id, p.user_id, p.title, p.content_key
+            GROUP BY p.post_id, p.user_id, p.title, p.file_name
         """
         return self.execute_query(conn, query, fetch=True)
 
-    def update_post(self, conn, post_id, new_title, new_content_key):
+    def get_post(self, conn, post_id):
+        query = """
+            SELECT 
+                p.post_id,
+                p.user_id,
+                p.title,
+                p.file_name,
+                COUNT(u.user_id) AS upvote_count
+            FROM posts p
+            LEFT JOIN post_upvotes u ON p.post_id = u.post_id
+            WHERE p.status = 'active' AND p.post_id = %s
+            GROUP BY p.post_id, p.user_id, p.title, p.file_name
+        """
+        cursor = conn.cursor()
+        try:
+            cursor.execute(query, (post_id,))
+            row = cursor.fetchone()
+            if row:
+                columns = [desc[0] for desc in cursor.description]
+                return dict(zip(columns, row))
+            else:
+                return None
+        finally:
+            cursor.close()
+
+    def update_post(self, conn, post_id, new_title, new_file_name):
         query = """
             UPDATE posts
-            SET title = %s, content_key = %s
+            SET title = %s, file_name = %s
             WHERE post_id = %s AND status = 'active'
         """
-        return self.execute_query(conn, query, (new_title, new_content_key, post_id))
+        return self.execute_query(conn, query, (new_title, new_file_name, post_id))
 
     def soft_delete_post(self, conn, post_id):
         query = """
@@ -143,26 +169,25 @@ class MariaDB:
 
 # ------------------------ Test
 if __name__ == "__main__":
-    print("Running maria_db_class.py")
     db = MariaDB()
     db.create_tables()
     conn = db.get_connection_with_db()
 
     if conn:
         print("\n Inserting Post, database now has:")
-        db.insert_post(conn, 'post3', 'user123', 'Hello World', 'pizza.jpg')
+        db.insert_post(conn, 'post4', 'user123', 'Hello World', 'pizza.jpg')
         print(db.list_posts(conn))
 
         print("\n Updating title, database now has:")
-        db.update_post(conn, 'post3', 'Updated Title', 'taco.jpg')
+        db.update_post(conn, 'post4', 'Updated Title', 'taco.jpg')
         print(db.list_posts(conn))
 
         print("\n Upvoting Post, database now has:")
-        db.upvote_post(conn, 'post3', 'user123')
+        db.upvote_post(conn, 'post4', 'user123')
         print(db.list_posts(conn))
 
         print("\n Deleting Post, database now has:")
-        db.soft_delete_post(conn, 'post3')
+        db.soft_delete_post(conn, 'post4')
         print(db.list_posts(conn))
 
         conn.close()
